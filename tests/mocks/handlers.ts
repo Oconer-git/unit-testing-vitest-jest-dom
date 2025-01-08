@@ -11,9 +11,19 @@ export const handlers = [
 
 	http.get("/products", () => {
 		return HttpResponse.json([
-			{ id: 1, name: "Coke" },
-			{ id: 2, name: "Marijuana" },
-			{ id: 3, name: "Shabu" },
+			{ id: 1, name: "Cake" },
+			{ id: 2, name: "Bread" },
+			{ id: 3, name: "Taco" },
 		]);
+	}),
+
+	http.get("products/:[id]", ({ params }) => {
+		const { id } = params;
+
+		return HttpResponse.json({
+			id: id,
+			name: "Coffee",
+			price: 13,
+		});
 	}),
 ];
