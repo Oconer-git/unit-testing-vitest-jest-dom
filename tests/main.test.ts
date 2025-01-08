@@ -1,9 +1,8 @@
-import { test, expect } from "vitest";
-
-const add = (a: number, b: number) => {
-	return a + b;
-};
-
-test("adds 1 and 2 into 3", () => {
-	expect(add(1, 2)).toBe(3);
+describe("group", () => {
+	it("should", async () => {
+		const response = await fetch("/categories");
+		const data = await response.json();
+		console.log(data);
+		expect(data).toHaveLength(3);
+	});
 });
