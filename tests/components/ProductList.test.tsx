@@ -8,6 +8,7 @@ import { http, HttpResponse, delay } from "msw";
 import { server } from "../mocks/server";
 import { beforeAll, afterAll } from "vitest";
 import { db } from "../mocks/db";
+import AllProviders from "../AllProviders";
 
 describe("ProductList", () => {
 	const productIds: number[] = [];
@@ -24,7 +25,7 @@ describe("ProductList", () => {
 	});
 
 	it("should render the lists of products", async () => {
-		render(<ProductList />);
+		render(<ProductList />, { wrapper: AllProviders });
 
 		const lists = await screen.findAllByRole("listitem");
 		expect(lists.length).toBeGreaterThan(0);
@@ -32,7 +33,7 @@ describe("ProductList", () => {
 
 	it("should render no products available if there is no product", async () => {
 		server.use(http.get("/products", () => HttpResponse.json([])));
-		render(<ProductList />);
+		render(<ProductList />, { wrapper: AllProviders });
 
 		const message = await screen.findByText(/no products/i);
 		expect(message).toBeInTheDocument();
@@ -40,9 +41,9 @@ describe("ProductList", () => {
 
 	it("should render an error message when there is error", async () => {
 		server.use(http.get("/products", () => HttpResponse.error()));
-		render(<ProductList />);
+		render(<ProductList />, { wrapper: AllProviders });
 
-		const message = await screen.findByText(/error/i);
+		const message = await screen.findByText(/Error/i);
 		expect(message).toBeInTheDocument();
 	});
 
@@ -54,13 +55,13 @@ describe("ProductList", () => {
 			})
 		);
 
-		render(<ProductList />);
+		render(<ProductList />, { wrapper: AllProviders });
 
 		expect(await screen.findByText(/loading/i)).toBeInTheDocument();
 	});
 
 	it("should remove the loading indicator after the data is fetched", async () => {
-		render(<ProductList />);
+		render(<ProductList />, { wrapper: AllProviders });
 
 		await waitForElementToBeRemoved(() => screen.queryByText(/loading/i));
 	});
