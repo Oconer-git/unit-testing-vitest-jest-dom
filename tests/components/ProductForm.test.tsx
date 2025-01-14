@@ -1,5 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { Toaster } from "react-hot-toast";
 import ProductForm from "../../src/components/ProductForm";
 import { Category, Product } from "../../src/entities";
 import AllProviders from "../AllProviders";
@@ -69,24 +70,107 @@ describe("ProductForm", () => {
 			errorMessage: /255/,
 		},
 	])(
-		"should display an error if name is $scenario",
+		"should display an error if name field input is $scenario",
 		async ({ name, errorMessage }) => {
-			const { waitForFormToLoad } = renderComponent();
-
+			const { waitForFormToLoad, expectErrorToBeInTheDocument } =
+				renderComponent();
 			const form = await waitForFormToLoad();
-			const user = userEvent.setup();
-			if (name !== undefined) await user.type(form.nameInput, name);
-			await user.type(form.priceInput, "10");
-			await user.click(form.categoryInput);
-			const options = screen.getAllByRole("option");
-			await user.click(options[0]);
-			await user.click(form.submitButton);
 
-			const error = screen.getByRole("alert");
-			expect(error).toBeInTheDocument();
-			expect(error).toHaveTextContent(errorMessage);
+			await form.fill({ ...form.formData, name });
+
+			expectErrorToBeInTheDocument(errorMessage);
 		}
 	);
+
+	it.each([
+		{ scenario: "missing", errorMessage: /required/i },
+		{
+			scenario: "less than 1",
+			price: 0,
+			errorMessage: /1/,
+		},
+		{
+			scenario: "negative",
+			price: -1,
+			errorMessage: /1/,
+		},
+		{
+			scenario: "greater than 1000",
+			price: 10001,
+			errorMessage: /1000/,
+		},
+		{
+			scenario: "not a number",
+			price: "123x",
+			errorMessage: /required/i,
+		},
+	])(
+		"should display an error if price field input is $scenario",
+		async ({ price, errorMessage }) => {
+			const { waitForFormToLoad, expectErrorToBeInTheDocument } =
+				renderComponent();
+
+			const form = await waitForFormToLoad();
+			await form.fill({ ...form.formData, price });
+
+			expectErrorToBeInTheDocument(errorMessage);
+		}
+	);
+
+	it("should display an error if category is 'missing'", async () => {
+		const { waitForFormToLoad, expectErrorToBeInTheDocument } =
+			renderComponent();
+
+		const form = await waitForFormToLoad();
+		const user = userEvent.setup();
+		await user.type(form.nameInput, "James");
+		await user.type(form.priceInput, "123");
+		await user.click(form.submitButton);
+
+		expectErrorToBeInTheDocument(/required/i);
+	});
+
+	it("should call onSubmit with the correct data", async () => {
+		const { waitForFormToLoad, onSubmit } = renderComponent();
+
+		const form = await waitForFormToLoad();
+		await form.fill(form.formData);
+
+		const { id, ...formData } = form.formData;
+		expect(onSubmit).toHaveBeenCalledWith(formData);
+	});
+
+	it("should display a toast if submission fails", async () => {
+		const { waitForFormToLoad, onSubmit } = renderComponent();
+		onSubmit.mockRejectedValue({});
+
+		const form = await waitForFormToLoad();
+		await form.fill(form.formData);
+
+		const toast = await screen.findByRole("status");
+		expect(toast).toBeInTheDocument();
+		expect(toast).toHaveTextContent(/error/i);
+	});
+
+	it("should disable the submit button upon submission", async () => {
+		const { waitForFormToLoad, onSubmit } = renderComponent();
+
+		onSubmit.mockReturnValue(new Promise(() => {}));
+		const form = await waitForFormToLoad();
+		await form.fill(form.formData);
+
+		expect(form.submitButton).toBeDisabled();
+	});
+
+	it("should re-enable submit button after submission", async () => {
+		const { waitForFormToLoad, onSubmit } = renderComponent();
+		onSubmit.mockRejectedValue({});
+
+		const form = await waitForFormToLoad();
+		await form.fill(form.formData);
+
+		expect(form.submitButton).not.toBeDisabled();
+	});
 
 	beforeAll(() => {
 		[1, 2, 3].forEach((item) => {
@@ -101,20 +185,66 @@ describe("ProductForm", () => {
 	});
 
 	const renderComponent = (product?: Product) => {
-		render(<ProductForm product={product} onSubmit={vi.fn()} />, {
-			wrapper: AllProviders,
-		});
+		const onSubmit = vi.fn();
+		render(
+			<>
+				<ProductForm product={product} onSubmit={onSubmit} />{" "}
+				<Toaster />
+			</>,
+			{
+				wrapper: AllProviders,
+			}
+		);
 
 		return {
+			onSubmit,
+			expectErrorToBeInTheDocument: (errorMessage: RegExp | string) => {
+				const error = screen.getByRole("alert");
+				expect(error).toBeInTheDocument();
+				expect(error).toHaveTextContent(errorMessage);
+			},
+
 			waitForFormToLoad: async () => {
 				await screen.findByRole("form");
+
+				const formData = {
+					id: 1,
+					name: "a",
+					price: 1,
+					categoryId: categoriesId[0],
+				};
+
+				const nameInput = screen.getByPlaceholderText(/name/i);
+				const priceInput = screen.getByPlaceholderText(/price/i);
+				const categoryInput = screen.getByRole("combobox", {
+					name: /category/i,
+				});
+				const submitButton = screen.getByRole("button");
+
+				type FormData = {
+					[K in keyof Product]: any;
+				};
+
+				const fill = async (product: FormData) => {
+					const user = userEvent.setup();
+					if (product.name !== undefined)
+						await user.type(nameInput, product.name);
+					if (product.price !== undefined)
+						await user.type(priceInput, product.price.toString());
+					await user.tab();
+					await user.click(categoryInput);
+					const options = screen.getAllByRole("option");
+					await user.click(options[0]);
+					await user.click(submitButton);
+				};
+
 				return {
-					nameInput: screen.getByPlaceholderText(/name/i),
-					priceInput: screen.getByPlaceholderText(/price/i),
-					categoryInput: screen.getByRole("combobox", {
-						name: /category/i,
-					}),
-					submitButton: screen.getByRole("button"),
+					nameInput,
+					priceInput,
+					categoryInput,
+					submitButton,
+					fill,
+					formData,
 				};
 			},
 		};

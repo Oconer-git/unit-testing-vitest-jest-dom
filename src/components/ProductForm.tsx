@@ -40,7 +40,7 @@ const ProductForm = ({ product, onSubmit }: Props) => {
 					setSubmitting(true);
 					await onSubmit(formData);
 				} catch (error) {
-					toast.error("An unexpected erfror occurred");
+					toast.error("An unexpected error occurred");
 				} finally {
 					setSubmitting(false);
 				}
