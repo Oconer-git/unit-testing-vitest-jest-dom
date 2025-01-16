@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { Toaster } from "react-hot-toast";
 import ProductForm from "../../src/components/ProductForm";
@@ -74,11 +74,14 @@ describe("ProductForm", () => {
 		async ({ name, errorMessage }) => {
 			const { waitForFormToLoad, expectErrorToBeInTheDocument } =
 				renderComponent();
+
 			const form = await waitForFormToLoad();
 
 			await form.fill({ ...form.formData, name });
 
-			expectErrorToBeInTheDocument(errorMessage);
+			await waitFor(() => {
+				expectErrorToBeInTheDocument(errorMessage);
+			});
 		}
 	);
 
