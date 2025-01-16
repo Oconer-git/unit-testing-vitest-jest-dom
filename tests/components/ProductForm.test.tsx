@@ -198,8 +198,10 @@ describe("ProductForm", () => {
 
 		return {
 			onSubmit,
-			expectErrorToBeInTheDocument: (errorMessage: RegExp | string) => {
-				const error = screen.getByRole("alert");
+			expectErrorToBeInTheDocument: async (
+				errorMessage: RegExp | string
+			) => {
+				const error = await screen.findByRole("alert");
 				expect(error).toBeInTheDocument();
 				expect(error).toHaveTextContent(errorMessage);
 			},

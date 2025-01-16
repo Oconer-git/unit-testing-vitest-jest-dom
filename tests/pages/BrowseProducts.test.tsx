@@ -57,7 +57,7 @@ const renderComponent = () => {
 	};
 };
 
-describe("BrowseProducts", () => {
+describe.only("BrowseProducts", () => {
 	it("should render loading skeleton when fetching categories for categories selector", () => {
 		simulateDelay("/categories");
 
@@ -82,10 +82,10 @@ describe("BrowseProducts", () => {
 		await waitForElementToBeRemoved(getProductsSkeleton);
 	});
 
-	it.only("should not render an error if categories cannot be fetched", async () => {
+	it("should not render an error if categories cannot be fetched", async () => {
 		simulateError("/categories");
 
-		const { getCategoriesSkeleton, getCategoriesCombobox } =
+		const { getCategoriesCombobox, getCategoriesSkeleton } =
 			renderComponent();
 
 		await waitForElementToBeRemoved(getCategoriesSkeleton);
@@ -94,9 +94,8 @@ describe("BrowseProducts", () => {
 		expect(getCategoriesCombobox()).not.toBeInTheDocument();
 	});
 
-	it.only("should show error message when there is error on fetching products", async () => {
+	it("should show error message when there is error on fetching products", async () => {
 		simulateError("/products");
-
 		renderComponent();
 
 		expect(await screen.findByText(/error/i)).toBeInTheDocument();
